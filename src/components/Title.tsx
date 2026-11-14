@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SITES, type SiteId } from '../engine/sites';
 import { archivedSun, fetchLiveSun, type SunReport } from '../data/liveSun';
 import { GlossaryModal } from './GlossaryModal';
+import { JargonDecoderModal } from './JargonDecoderModal';
 
 const MOOD_TEXT = {
   calm: { icon: '😌☀️', title: 'The Sun is CALM', text: 'Few big flares lately. Radiation storms are less likely.' },
@@ -72,9 +73,9 @@ export function TitleScreen({
           <button
             className="title-tool-btn"
             onClick={() => setShowGlossary(true)}
-            title="Read kid-friendly space words"
+            title="Read kid-friendly space words & test your smarts"
           >
-            📖 Space Glossary for Kids
+            📖 Space Words & Jargon Decoder
           </button>
           <button
             className="title-tool-btn"
@@ -306,8 +307,8 @@ export function TitleScreen({
         </div>
       </div>
 
-      {/* Space Glossary Modal for Kids */}
-      <GlossaryModal isOpen={showGlossary} onClose={() => setShowGlossary(false)} />
+      {/* Space Words & NASA Jargon Decoder Modal */}
+      <JargonDecoderModal isOpen={showGlossary} onClose={() => setShowGlossary(false)} />
     </div>
   );
 }

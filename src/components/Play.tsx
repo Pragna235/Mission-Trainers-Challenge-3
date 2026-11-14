@@ -18,6 +18,7 @@ import { CustomizePowerCells } from './CustomizePowerCells';
 import { CapcomAndPlans } from './CapcomAndPlans';
 import { CriticalFailureModal } from './CriticalFailureModal';
 import { ScienceTraceabilityModal } from './ScienceTraceabilityModal';
+import { JargonDecoderModal } from './JargonDecoderModal';
 
 const SYSTEMS: { id: SystemId; icon: string; name: string; help: string }[] = [
   { id: 'life', icon: '🫧', name: 'Life Support', help: `Makes air to breathe. Needs ${RULES.lifeCellsNeeded} cells (1 per astronaut) to keep the air steady.` },
@@ -129,6 +130,7 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
   const [showHowTo, setShowHowTo] = useState(game.sol === 1 && game.history.length === 0);
   const [showDebrief, setShowDebrief] = useState(false);
   const [showTraceModal, setShowTraceModal] = useState(false);
+  const [showJargonModal, setShowJargonModal] = useState(false);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
 
   const solar = solarCells(game);
@@ -207,6 +209,9 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
         </div>
         <button className="icon-btn" onClick={() => setShowHowTo(true)} aria-label="How to play" title="Game Rules">
           ❓
+        </button>
+        <button className="btn btn-ghost small-btn jargon-btn" onClick={() => setShowJargonModal(true)} title="Space Words & NASA Jargon Decoder">
+          📖 Jargon Decoder
         </button>
         <button className="btn btn-ghost small-btn nasa-data-btn" onClick={() => setShowTraceModal(true)} title="NASA Datasets & DONKI API">
           🛰️ NASA Data Hub
@@ -343,6 +348,12 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
         <ScienceTraceabilityModal
           isOpen={showTraceModal}
           onClose={() => setShowTraceModal(false)}
+        />
+      )}
+      {showJargonModal && (
+        <JargonDecoderModal
+          isOpen={showJargonModal}
+          onClose={() => setShowJargonModal(false)}
         />
       )}
     </div>
