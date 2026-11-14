@@ -1,19 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
-  AlertTriangle,
   Award,
   BatteryCharging,
   BookOpen,
   CheckCircle,
   Clock,
   Compass,
-  Cpu,
   Database,
   ExternalLink,
   Flame,
   HeartPulse,
-  HelpCircle,
   Info,
   Leaf,
   Radio,
@@ -22,6 +19,8 @@ import {
   Sliders,
   Sparkles,
   Sun,
+  Volume2,
+  VolumeX,
   Wind,
   Zap
 } from 'lucide-react';
@@ -49,6 +48,7 @@ import {
 } from './types/game';
 import { OutpostVisualizer } from './components/OutpostVisualizer';
 import { ScienceTraceabilityModal } from './components/ScienceTraceabilityModal';
+import { sound } from './utils/sound';
 
 const DEFAULT_ALLOCATION: PowerAllocation = {
   lifeSupport: 30,
@@ -58,18 +58,18 @@ const DEFAULT_ALLOCATION: PowerAllocation = {
 };
 
 export function App() {
-  // Mission configuration state
+  // Mission configuration
   const [site, setSite] = useState<MissionSiteId>('moon');
   const [difficulty, setDifficulty] = useState<DifficultyMode>('cadet');
   const config = MISSION_CONFIGS[site];
 
-  // Core simulation state
+  // Core simulation stats
   const [day, setDay] = useState<number>(1);
   const [power, setPower] = useState<number>(85);
   const [lifeSupport, setLifeSupport] = useState<number>(85);
-  const [health, setHealth] = useState<number>(90);
+  const [health, setHealth] = useState<number>(92);
   const [cropHealth, setCropHealth] = useState<number>(80);
-  const [radiationMsV, setRadiationMsV] = useState<number>(1.2);
+  const [radiationMsV, setRadiationMsV] = useState<number>(1.37);
   const [science, setScience] = useState<number>(15);
 
   const [allocation, setAllocation] = useState<PowerAllocation>(DEFAULT_ALLOCATION);
@@ -77,14 +77,13 @@ export function App() {
   const [delayedQueue, setDelayedQueue] = useState<DelayedConsequence[]>([]);
   const [triggeredToday, setTriggeredToday] = useState<DelayedConsequence[]>([]);
   const [missionLogs, setMissionLogs] = useState<DayLogEntry[]>([]);
-  const [lastTurnFeedback, setLastTurnFeedback] = useState<{
-    day: number;
-    choiceTitle: string;
-    whyItMatters: string;
-    commDelayTriggered?: boolean;
-  } | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
-  // NASA API & Science Modal state
+  // Show/Hide optional panels so screen stays completely clean
+  const [showPowerSliders, setShowPowerSliders] = useState<boolean>(false);
+  const [showLogsDrawer, setShowLogsDrawer] = useState<boolean>(false);
+
+  // NASA API & Traceability modal
   const [apiKey, setApiKey] = useState<string>(
     (import.meta.env.VITE_NASA_API_KEY as string) || 'DEMO_KEY'
   );
@@ -97,15 +96,19 @@ export function App() {
   );
   const [isFetchingLive, setIsFetchingLive] = useState<boolean>(false);
   const [isScienceModalOpen, setIsScienceModalOpen] = useState<boolean>(false);
-  const [activeGlossary, setActiveGlossary] = useState<GlossaryTerm>(GLOSSARY_TERMS[0]);
 
-  // Build mission deck filtered for Moon or Mars
+  // Sound toggle
+  const toggleSound = () => {
+    sound.enabled = !soundEnabled;
+    setSoundEnabled(!soundEnabled);
+    if (!soundEnabled) sound.click();
+  };
+
+  // Build filtered mission deck for Moon or Mars
   const missionDeck = useMemo(() => {
-    const valid = CURATED_MISSION_EVENTS.filter(
+    return CURATED_MISSION_EVENTS.filter(
       (ev) => ev.site === 'both' || ev.site === site
     );
-    // Order so site-specific cards & diverse categories appear across turns
-    return valid;
   }, [site]);
 
   const currentEvent: MissionEventCard = useMemo(() => {
@@ -114,7 +117,7 @@ export function App() {
     return missionDeck[idx];
   }, [day, missionDeck, injectedLiveCard]);
 
-  // Fetch live NASA DONKI telemetry on mount or when API key changes
+  // Load NASA DONKI telemetry
   const loadNasaDonki = async (keyToUse: string) => {
     setIsFetchingLive(true);
     const res = await fetchLiveDonkiSpaceWeather(keyToUse);
@@ -125,13 +128,13 @@ export function App() {
       setLiveSummary(res.summary);
       setLiveDonkiCard(res.liveEventCard);
       setApiStatusMessage(
-        `Connected to api.nasa.gov/DONKI (${res.summary.flareCount} Solar Flares & ${res.summary.cmeCount} CMEs in past 28 days).`
+        `Connected to api.nasa.gov/DONKI (${res.summary.flareCount} Flares & ${res.summary.cmeCount} CMEs in past 28d).`
       );
     } else {
       setDataSourceMode('archived');
       setApiStatusMessage(
         res.errorReason ||
-          'Using Verified Archived NASA Datasets (DONKI May 2024 Superstorm, RadLab, OSDR, Mars Trek).'
+          'Running on Verified Archived NASA Datasets (DONKI May 2024 Superflare, RadLab, OSDR, Mars Trek).'
       );
     }
   };
@@ -140,75 +143,73 @@ export function App() {
     loadNasaDonki(apiKey);
   }, []);
 
-  // Reset mission when switching between Moon and Mars or clicking Restart
+  // Reset Mission
   const resetMission = (newSite: MissionSiteId = site, newDiff: DifficultyMode = difficulty) => {
+    sound.click();
     setSite(newSite);
     setDifficulty(newDiff);
     setDay(1);
-    setPower(newDiff === 'cadet' ? 86 : 78);
-    setLifeSupport(newDiff === 'cadet' ? 86 : 80);
-    setHealth(newDiff === 'cadet' ? 92 : 85);
+    setPower(85);
+    setLifeSupport(85);
+    setHealth(92);
     setCropHealth(80);
     setRadiationMsV(newSite === 'moon' ? 1.37 : 0.64);
-    setScience(10);
+    setScience(15);
     setAllocation(DEFAULT_ALLOCATION);
     setSelectedChoiceId(null);
     setDelayedQueue([]);
     setTriggeredToday([]);
     setMissionLogs([]);
-    setLastTurnFeedback(null);
     setInjectedLiveCard(null);
   };
 
-  // Check win/loss conditions
+  // Check Game Over / Victory
   const gameStatus = useMemo(() => {
     if (power <= 0) {
       return {
         over: true,
         won: false,
-        reason: 'Total Outpost Blackout (Power Reserve hit 0%)',
-        lesson:
-          'When batteries run completely flat in deep space, cabin heaters and oxygen scrubbers shut down together. Mission planners always protect a minimum 15–20% emergency power buffer!'
+        title: 'Total Outpost Blackout! ⚡',
+        reason: 'Your batteries completely died! Cabin heaters and life support shut down together.',
+        lesson: 'NASA Rule: Always keep an emergency 20% power reserve for heaters and air scrubbers!'
       };
     }
     if (lifeSupport <= 0) {
       return {
         over: true,
         won: false,
-        reason: 'Life Support Depleted (O₂ & Clean Water hit 0%)',
-        lesson:
-          'Saving electricity by throttling ECLSS recyclers or letting hydroponic crops die creates an oxygen deficit that compounds over subsequent days.'
+        title: 'Life Support Ran Out! 🫧',
+        reason: 'Oxygen & clean water hit 0%. The crew had to evacuate to their return craft.',
+        lesson: 'NASA Rule: Throttling ECLSS or letting greenhouse plants die costs more air tomorrow!'
       };
     }
     if (health <= 0 || radiationMsV >= config.safeRadiationLimitMsV) {
       return {
         over: true,
         won: false,
-        reason:
-          radiationMsV >= config.safeRadiationLimitMsV
-            ? `Radiation Limit Exceeded (${radiationMsV.toFixed(1)} / ${config.safeRadiationLimitMsV} mSv)`
-            : 'Crew Health Critical (0%)',
-        lesson:
-          'Unshielded Solar Particle Events and skipped exercise countermeasures rapidly degrade crew health. Active shielding and water walls are essential during DONKI storm alerts!'
+        title: 'Radiation Safety Exceeded! ☢️',
+        reason: `Radiation reached ${radiationMsV.toFixed(1)} / ${config.safeRadiationLimitMsV} mSv.`,
+        lesson: 'NASA Rule: Active shielding and water-walls are essential during solar flares!'
       };
     }
     if (day > config.totalDays) {
-      const metScience = science >= config.scienceTarget;
+      const won = science >= config.scienceTarget;
       return {
         over: true,
-        won: metScience,
-        reason: metScience
-          ? `Mission Accomplished! Survived all ${config.totalDays} ${config.dayUnitName}s & Exceeded Science Target (${science}/${config.scienceTarget} pts)!`
-          : `Crew Survived ${config.totalDays} ${config.dayUnitName}s, but Missed Science Target (${science}/${config.scienceTarget} pts)`,
-        lesson: metScience
-          ? 'You mastered NASA’s core engineering trade-off: balancing power, life support, hydroponic food, and radiation shielding while still achieving high-priority science!'
-          : 'You kept the crew alive—the #1 rule of human spaceflight! Next time, try using healthy greenhouse crops and pre-charged storm batteries to free up extra power for science instruments.'
+        won,
+        title: won ? '🏆 Mission Accomplished! Outstanding Job Commander!' : '🚀 Mission Complete - Crew Survived!',
+        reason: won
+          ? `You survived all ${config.totalDays} ${config.dayUnitName}s and collected ${science} Science Stars!`
+          : `You kept the whole crew safe (${science}/${config.scienceTarget} science stars).`,
+        lesson: won
+          ? 'You proved you can balance power, food, life support, and radiation shielding like a real NASA flight director!'
+          : 'Keeping humans alive is #1 in spaceflight! Next time, harvest fresh crops to free up more battery power for science.'
       };
     }
-    return { over: false, won: false, reason: '', lesson: '' };
+    return { over: false, won: false, title: '', reason: '', lesson: '' };
   }, [power, lifeSupport, health, radiationMsV, day, config, science]);
 
-  // Calculate live slider impact & preview outcome
+  // Daily slider impacts
   const sliderImpact = useMemo(
     () => calculateSliderImpact(allocation, config, cropHealth, difficulty),
     [allocation, config, cropHealth, difficulty]
@@ -229,13 +230,14 @@ export function App() {
     [power, lifeSupport, health, radiationMsV, cropHealth, science, sliderImpact, selectedChoice]
   );
 
-  // Execute turn
+  // Commit turn & launch next Sol
   const handleCommitTurn = () => {
     if (!selectedChoice || gameStatus.over) return;
 
+    sound.advance();
     const nextDay = day + 1;
 
-    // Check delayed consequences scheduled for nextDay
+    // Check compounding effects
     const dueConsequences = delayedQueue.filter((d) => d.triggerDay === nextDay);
     const remainingQueue = delayedQueue.filter((d) => d.triggerDay !== nextDay);
 
@@ -290,752 +292,542 @@ export function App() {
     setDelayedQueue(remainingQueue);
     setTriggeredToday(dueConsequences);
     setMissionLogs((prev) => [logEntry, ...prev]);
-    setLastTurnFeedback({
-      day,
-      choiceTitle: selectedChoice.label,
-      whyItMatters: selectedChoice.whyItMatters,
-      commDelayTriggered: selectedChoice.commDelayPenaltyApply
-    });
     setSelectedChoiceId(null);
     setInjectedLiveCard(null);
     setDay(nextDay);
   };
 
-  // Preset power allocation helpers
+  // Quick Preset Power Helpers
   const applyPreset = (preset: 'nominal' | 'storm' | 'greenhouse' | 'science') => {
+    sound.shield();
     if (preset === 'nominal') {
       setAllocation({ lifeSupport: 30, shielding: 25, greenhouse: 20, scienceComms: 20 });
     } else if (preset === 'storm') {
-      setAllocation({ lifeSupport: 28, shielding: 40, greenhouse: 12, scienceComms: 10 });
+      setAllocation({ lifeSupport: 28, shielding: 42, greenhouse: 10, scienceComms: 10 });
     } else if (preset === 'greenhouse') {
-      setAllocation({ lifeSupport: 28, shielding: 20, greenhouse: 32, scienceComms: 15 });
+      setAllocation({ lifeSupport: 28, shielding: 20, greenhouse: 34, scienceComms: 12 });
     } else if (preset === 'science') {
       setAllocation({ lifeSupport: 26, shielding: 20, greenhouse: 16, scienceComms: 34 });
     }
   };
 
   return (
-    <div className="app-shell">
-      {/* Top Mission Control Navigation Header */}
-      <header className="top-nav">
-        <div className="brand-block">
-          <div className="brand-emblem" aria-hidden="true">
-            <Compass size={22} />
-          </div>
+    <div className="game-app-wrapper">
+      {/* ------------------------------------------------------------------ */}
+      {/* 1. TOP GAME CONTROL BAR                                            */}
+      {/* ------------------------------------------------------------------ */}
+      <header className="game-navbar">
+        <div className="game-branding">
+          <div className="game-logo-rocket" onClick={() => sound.click()}>🚀</div>
           <div>
-            <div className="brand-eyebrow">2026 NASA SPACE APPS CHALLENGE • AGES 7–12</div>
-            <h1 className="brand-title">Outpost Commander: Deep Space Trade-Offs</h1>
+            <h1 className="game-title">Outpost Commander</h1>
+            <div className="game-tagline">2026 NASA Space Apps Challenge • Ages 7–12</div>
           </div>
         </div>
 
-        {/* Mission Site Switcher (Moon vs. Mars) */}
-        <div className="mission-switcher" role="group" aria-label="Select Mission Outpost">
+        {/* Planet Outpost Selector (Moon vs Mars) */}
+        <div className="game-planet-tabs" role="group" aria-label="Select Mission Destination">
           <button
-            id="select-moon-mission-btn"
-            className={`switch-btn ${site === 'moon' ? 'active-moon' : ''}`}
-            onClick={() => resetMission('moon', difficulty)}
+            id="tab-moon"
+            className={`planet-tab-btn ${site === 'moon' ? 'planet-tab-active-moon' : ''}`}
+            onClick={() => resetMission('moon')}
           >
-            <span>🌕 Moon: Shackleton Base</span>
-            <small>1.3s Comm • High Radiation</small>
+            <span className="planet-icon">🌕</span>
+            <div className="planet-text">
+              <strong>Moon Base</strong>
+              <small>Shackleton Crater</small>
+            </div>
           </button>
           <button
-            id="select-mars-mission-btn"
-            className={`switch-btn ${site === 'mars' ? 'active-mars' : ''}`}
-            onClick={() => resetMission('mars', difficulty)}
+            id="tab-mars"
+            className={`planet-tab-btn ${site === 'mars' ? 'planet-tab-active-mars' : ''}`}
+            onClick={() => resetMission('mars')}
           >
-            <span>🔴 Mars: Jezero Outpost</span>
-            <small>18m Delay • Dust Storms</small>
+            <span className="planet-icon">🔴</span>
+            <div className="planet-text">
+              <strong>Mars Outpost</strong>
+              <small>Jezero Crater (18m Delay)</small>
+            </div>
           </button>
         </div>
 
-        {/* Mode & NASA Data Status Controls */}
-        <div className="header-actions">
-          <div className="difficulty-toggle" role="group" aria-label="Difficulty Mode">
-            <button
-              id="mode-cadet-btn"
-              className={`diff-btn ${difficulty === 'cadet' ? 'active' : ''}`}
-              onClick={() => setDifficulty('cadet')}
-              title="Shows exact outcome previews before you lock in your decision"
-            >
-              Cadet (7–10)
-            </button>
-            <button
-              id="mode-director-btn"
-              className={`diff-btn ${difficulty === 'director' ? 'active' : ''}`}
-              onClick={() => setDifficulty('director')}
-              title="Tighter solar margins & realistic telemetry"
-            >
-              Flight Director (11+)
-            </button>
-          </div>
+        {/* Audio & NASA Science modal button */}
+        <div className="game-header-tools">
+          <button
+            id="audio-toggle-btn"
+            className="tool-circle-btn"
+            onClick={toggleSound}
+            title={soundEnabled ? 'Mute Sound Effects' : 'Enable Sound Effects'}
+            aria-label="Toggle Sound"
+          >
+            {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </button>
 
           <button
-            id="open-nasa-science-hub-btn"
-            className={`nasa-status-btn ${dataSourceMode === 'live' ? 'status-live' : 'status-archived'}`}
-            onClick={() => setIsScienceModalOpen(true)}
+            id="open-science-modal-btn"
+            className="nasa-pill-btn"
+            onClick={() => {
+              sound.click();
+              setIsScienceModalOpen(true);
+            }}
           >
             <Database size={15} />
-            <span>
-              {dataSourceMode === 'live'
-                ? 'LIVE NASA DONKI API'
-                : 'VERIFIED NASA DATA (SNAPSHOT)'}
-            </span>
+            <span>NASA Data & Rules</span>
           </button>
         </div>
       </header>
 
-      {/* Interactive Kid-Friendly Space Glossary Strip */}
-      <section className="glossary-strip" aria-label="Space Science Word Helper">
-        <div className="glossary-strip-chips">
-          <span className="strip-label">
-            <BookOpen size={14} /> Tap a Space Word:
-          </span>
-          {GLOSSARY_TERMS.map((item) => (
-            <button
-              key={item.id}
-              id={`glossary-chip-${item.id}`}
-              className={`glossary-chip ${activeGlossary.id === item.id ? 'chip-active' : ''}`}
-              onClick={() => setActiveGlossary(item)}
-            >
-              {item.term}
-            </button>
-          ))}
+      {/* ------------------------------------------------------------------ */}
+      {/* 2. CHUNKY ARCADE HUD STATUS STRIP                                  */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="arcade-hud-strip" aria-label="Outpost Status Meters">
+        {/* Battery Power */}
+        <div className={`arcade-hud-meter ${power <= 25 ? 'hud-danger' : ''}`}>
+          <div className="meter-icon-box box-amber">⚡</div>
+          <div className="meter-content">
+            <div className="meter-label-row">
+              <span>BATTERY</span>
+              <strong>{power}%</strong>
+            </div>
+            <div className="chunky-bar-track">
+              <div className="chunky-bar-fill fill-amber" style={{ width: `${power}%` }} />
+            </div>
+            <div className="meter-sub">Draw: {sliderImpact.totalAllocatedPercent}%</div>
+          </div>
         </div>
-        <div className="glossary-strip-explain">
-          <strong>{activeGlossary.term}:</strong> {activeGlossary.shortDef}{' '}
-          <span className="analogy-highlight">💡 {activeGlossary.kidAnalogy}</span>
+
+        {/* Life Support (O2 & Water) */}
+        <div className={`arcade-hud-meter ${lifeSupport <= 25 ? 'hud-danger' : ''}`}>
+          <div className="meter-icon-box box-cyan">🫧</div>
+          <div className="meter-content">
+            <div className="meter-label-row">
+              <span>AIR & WATER</span>
+              <strong>{lifeSupport}%</strong>
+            </div>
+            <div className="chunky-bar-track">
+              <div className="chunky-bar-fill fill-cyan" style={{ width: `${lifeSupport}%` }} />
+            </div>
+            <div className="meter-sub">Cabin ECLSS</div>
+          </div>
+        </div>
+
+        {/* Radiation & Shielding */}
+        <div
+          className={`arcade-hud-meter ${
+            health <= 25 || radiationMsV >= config.safeRadiationLimitMsV * 0.8
+              ? 'hud-danger'
+              : ''
+          }`}
+        >
+          <div className="meter-icon-box box-emerald">🛡️</div>
+          <div className="meter-content">
+            <div className="meter-label-row">
+              <span>CREW SAFETY</span>
+              <strong>{health}%</strong>
+            </div>
+            <div className="chunky-bar-track">
+              <div className="chunky-bar-fill fill-emerald" style={{ width: `${health}%` }} />
+            </div>
+            <div className="meter-sub">
+              Dose: {radiationMsV.toFixed(1)} / {config.safeRadiationLimitMsV} mSv
+            </div>
+          </div>
+        </div>
+
+        {/* Hydroponic Food Crops */}
+        <div className="arcade-hud-meter">
+          <div className="meter-icon-box box-green">🥗</div>
+          <div className="meter-content">
+            <div className="meter-label-row">
+              <span>CSA CROPS</span>
+              <strong>{cropHealth}%</strong>
+            </div>
+            <div className="chunky-bar-track">
+              <div className="chunky-bar-fill fill-green" style={{ width: `${cropHealth}%` }} />
+            </div>
+            <div className="meter-sub">Dwarf Wheat & Lettuce</div>
+          </div>
+        </div>
+
+        {/* Mission Science Stars */}
+        <div className="arcade-hud-meter meter-stars">
+          <div className="meter-icon-box box-purple">⭐</div>
+          <div className="meter-content">
+            <div className="meter-label-row">
+              <span>DISCOVERY</span>
+              <strong>{science} / {config.scienceTarget}</strong>
+            </div>
+            <div className="chunky-bar-track">
+              <div
+                className="chunky-bar-fill fill-purple"
+                style={{
+                  width: `${Math.min(100, Math.round((science / config.scienceTarget) * 100))}%`
+                }}
+              />
+            </div>
+            <div className="meter-sub">Target Goal</div>
+          </div>
         </div>
       </section>
 
-      {/* Main Two-Column Outpost Command Layout */}
-      <main className="main-workspace">
-        {/* LEFT COLUMN: Visual Outpost, 3 Core Resource Gauges, & Daily Power Sliders */}
-        <section className="left-column">
-          {/* Core 3 Competing Resource Gauges + Science Goal */}
-          <div className="telemetry-strip">
-            {/* Gauge 1: Power Reserve */}
-            <div className={`gauge-card ${power <= 25 ? 'gauge-danger' : ''}`}>
-              <div className="gauge-head">
-                <span className="gauge-title">
-                  <BatteryCharging size={17} className="icon-amber" />
-                  1. Power Reserve
-                </span>
-                <span className="gauge-value">
-                  {power}%
-                  {difficulty === 'cadet' && selectedChoice && (
-                    <small
-                      className={
-                        preview.power >= power ? 'preview-pos' : 'preview-neg'
-                      }
-                    >
-                      {' '}
-                      → {preview.power}%
-                    </small>
-                  )}
-                </span>
-              </div>
-              <div className="progress-track">
-                <div
-                  className="progress-fill fill-amber"
-                  style={{ width: `${power}%` }}
-                />
-              </div>
-              <div className="gauge-sub">
-                <span>Solar + Fuel Cell Bank</span>
-                <span>Draw: {sliderImpact.totalAllocatedPercent}%</span>
-              </div>
-            </div>
+      {/* ------------------------------------------------------------------ */}
+      {/* 3. HERO GAMEPLAY CANVAS (LARGE INTERACTIVE OUTPOST)                */}
+      {/* ------------------------------------------------------------------ */}
+      <main className="game-stage-container">
+        <OutpostVisualizer
+          site={site}
+          day={Math.min(day, config.totalDays)}
+          totalDays={config.totalDays}
+          power={power}
+          lifeSupport={lifeSupport}
+          health={health}
+          cropHealth={cropHealth}
+          radiationMsV={radiationMsV}
+          safeRadiationLimitMsV={config.safeRadiationLimitMsV}
+          allocation={allocation}
+          currentEvent={currentEvent}
+        />
+        <div className="canvas-hint-pill">
+          💡 Tap any building, the forcefield shield, or the astronaut to inspect your base!
+        </div>
+      </main>
 
-            {/* Gauge 2: Life Support & Crops */}
-            <div className={`gauge-card ${lifeSupport <= 25 ? 'gauge-danger' : ''}`}>
-              <div className="gauge-head">
-                <span className="gauge-title">
-                  <Wind size={17} className="icon-cyan" />
-                  2. Life Support & Food
-                </span>
-                <span className="gauge-value">
-                  {lifeSupport}%
-                  {difficulty === 'cadet' && selectedChoice && (
-                    <small
-                      className={
-                        preview.lifeSupport >= lifeSupport ? 'preview-pos' : 'preview-neg'
-                      }
-                    >
-                      {' '}
-                      → {preview.lifeSupport}%
-                    </small>
-                  )}
-                </span>
-              </div>
-              <div className="progress-track">
-                <div
-                  className="progress-fill fill-cyan"
-                  style={{ width: `${lifeSupport}%` }}
-                />
-              </div>
-              <div className="gauge-sub">
-                <span>O₂ & Water Loop</span>
-                <span className="crop-tag">🌱 Crops: {cropHealth}%</span>
-              </div>
-            </div>
-
-            {/* Gauge 3: Shielding & Crew Health + RadLab Dosimeter */}
-            <div
-              className={`gauge-card ${
-                health <= 25 || radiationMsV >= config.safeRadiationLimitMsV * 0.8
-                  ? 'gauge-danger'
-                  : ''
-              }`}
-            >
-              <div className="gauge-head">
-                <span className="gauge-title">
-                  <Shield size={17} className="icon-emerald" />
-                  3. Crew & Shielding
-                </span>
-                <span className="gauge-value">
-                  {health}%
-                  {difficulty === 'cadet' && selectedChoice && (
-                    <small
-                      className={
-                        preview.health >= health ? 'preview-pos' : 'preview-neg'
-                      }
-                    >
-                      {' '}
-                      → {preview.health}%
-                    </small>
-                  )}
-                </span>
-              </div>
-              <div className="progress-track">
-                <div
-                  className="progress-fill fill-emerald"
-                  style={{ width: `${health}%` }}
-                />
-              </div>
-              <div className="gauge-sub">
-                <span>
-                  Dose: <strong>{radiationMsV.toFixed(1)}</strong> / {config.safeRadiationLimitMsV}{' '}
-                  mSv
-                </span>
-                <span>RadLab Limit</span>
-              </div>
-            </div>
-
-            {/* Mission Science & Comm Delay Bar */}
-            <div className="gauge-card">
-              <div className="gauge-head">
-                <span className="gauge-title">
-                  <Award size={17} className="icon-sky" />
-                  Mission Science
-                </span>
-                <span className="gauge-value">
-                  {science} / {config.scienceTarget}
-                  {difficulty === 'cadet' && selectedChoice && (
-                    <small className="preview-pos"> → {preview.science}</small>
-                  )}
-                </span>
-              </div>
-              <div className="progress-track">
-                <div
-                  className="progress-fill fill-sky"
-                  style={{
-                    width: `${Math.min(100, Math.round((science / config.scienceTarget) * 100))}%`
-                  }}
-                />
-              </div>
-              <div className="gauge-sub">
-                <span>
-                  <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
-                  Comm Delay: {config.commDelayDisplay}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive SVG Outpost Visualizer */}
-          <OutpostVisualizer
-            site={site}
-            day={Math.min(day, config.totalDays)}
-            totalDays={config.totalDays}
-            power={power}
-            lifeSupport={lifeSupport}
-            health={health}
-            cropHealth={cropHealth}
-            radiationMsV={radiationMsV}
-            safeRadiationLimitMsV={config.safeRadiationLimitMsV}
-            allocation={allocation}
-            currentEvent={currentEvent}
-          />
-
-          {/* Step 1: Daily Power Allocation Sliders (Every choice has a cost!) */}
-          <div className="power-budget-panel">
-            <div className="panel-header-row">
-              <div>
-                <span className="step-badge">STEP 1 EVERY {config.dayUnitName.toUpperCase()}</span>
-                <h3>Split Outpost Power Across Competing Systems</h3>
-              </div>
-              <div className="preset-buttons">
-                <button
-                  id="preset-nominal-btn"
-                  className="preset-btn"
-                  onClick={() => applyPreset('nominal')}
-                >
-                  Balanced
-                </button>
-                <button
-                  id="preset-storm-btn"
-                  className="preset-btn"
-                  onClick={() => applyPreset('storm')}
-                >
-                  Storm Shield
-                </button>
-                <button
-                  id="preset-greenhouse-btn"
-                  className="preset-btn"
-                  onClick={() => applyPreset('greenhouse')}
-                >
-                  Grow Crops
-                </button>
-                <button
-                  id="preset-science-btn"
-                  className="preset-btn"
-                  onClick={() => applyPreset('science')}
-                >
-                  Science Push
-                </button>
-              </div>
-            </div>
-
-            <p className="panel-helper-text">
-              Your solar arrays harvest enough electricity for <strong>~95% total load</strong> each{' '}
-              {config.dayUnitName}. Cranking all sliders high drains your battery; turning a slider
-              down saves power today, but hurts oxygen, crops, or radiation dose tomorrow!
-            </p>
-
-            <div className="sliders-grid">
-              {/* Slider 1: ECLSS Life Support */}
-              <div className="slider-box">
-                <div className="slider-label-row">
-                  <span>
-                    <Wind size={15} className="icon-cyan" /> Life Support (ECLSS O₂/Water)
-                  </span>
-                  <strong>{allocation.lifeSupport}%</strong>
-                </div>
-                <input
-                  id="slider-life-support"
-                  type="range"
-                  min={10}
-                  max={50}
-                  step={2}
-                  value={allocation.lifeSupport}
-                  onChange={(e) =>
-                    setAllocation({ ...allocation, lifeSupport: Number(e.target.value) })
-                  }
-                />
-                <div className="slider-effect-note">
-                  {sliderImpact.lifeSupportFromSliders >= 0
-                    ? `+${sliderImpact.lifeSupportFromSliders}% O₂/Water stability (incl. crop O₂ bonus)`
-                    : `${sliderImpact.lifeSupportFromSliders}% O₂ drop — crew air getting stuffy!`}
-                </div>
-              </div>
-
-              {/* Slider 2: Active Radiation & Thermal Shielding */}
-              <div className="slider-box">
-                <div className="slider-label-row">
-                  <span>
-                    <Shield size={15} className="icon-emerald" /> Radiation & Thermal Shielding
-                  </span>
-                  <strong>{allocation.shielding}%</strong>
-                </div>
-                <input
-                  id="slider-shielding"
-                  type="range"
-                  min={10}
-                  max={50}
-                  step={2}
-                  value={allocation.shielding}
-                  onChange={(e) =>
-                    setAllocation({ ...allocation, shielding: Number(e.target.value) })
-                  }
-                />
-                <div className="slider-effect-note">
-                  Baseline Cosmic Ray Dose today: +{sliderImpact.radiationMsVFromSliders} mSv
-                </div>
-              </div>
-
-              {/* Slider 3: CSA Greenhouse & Hydroponic Food */}
-              <div className="slider-box">
-                <div className="slider-label-row">
-                  <span>
-                    <Leaf size={15} className="icon-emerald" /> CSA Hydroponic Greenhouse LEDs
-                  </span>
-                  <strong>{allocation.greenhouse}%</strong>
-                </div>
-                <input
-                  id="slider-greenhouse"
-                  type="range"
-                  min={5}
-                  max={45}
-                  step={2}
-                  value={allocation.greenhouse}
-                  onChange={(e) =>
-                    setAllocation({ ...allocation, greenhouse: Number(e.target.value) })
-                  }
-                />
-                <div className="slider-effect-note">
-                  {sliderImpact.cropHealthFromSliders >= 0
-                    ? `Crops thriving (+${sliderImpact.cropHealthFromSliders}% Crop Health)`
-                    : `Crops dimming (${sliderImpact.cropHealthFromSliders}% Crop Health)`}
-                </div>
-              </div>
-
-              {/* Slider 4: Science & Deep Space Comms */}
-              <div className="slider-box">
-                <div className="slider-label-row">
-                  <span>
-                    <Radio size={15} className="icon-sky" /> Science Lab & Earth Comms
-                  </span>
-                  <strong>{allocation.scienceComms}%</strong>
-                </div>
-                <input
-                  id="slider-science-comms"
-                  type="range"
-                  min={5}
-                  max={45}
-                  step={2}
-                  value={allocation.scienceComms}
-                  onChange={(e) =>
-                    setAllocation({ ...allocation, scienceComms: Number(e.target.value) })
-                  }
-                />
-                <div className="slider-effect-note">
-                  Generates +{sliderImpact.scienceFromSliders} Science Points today
-                </div>
-              </div>
-            </div>
-
-            {/* Slider Warnings / Net Battery Balance */}
-            <div className="slider-summary-bar">
-              <div className="net-battery-pill">
-                <Zap size={15} />
-                <span>
-                  Total Power Draw: <strong>{sliderImpact.totalAllocatedPercent}%</strong> (
-                  {sliderImpact.netPowerFromSliders >= 0
-                    ? `Battery charges +${sliderImpact.netPowerFromSliders}%`
-                    : `Battery drains ${sliderImpact.netPowerFromSliders}%`}
-                  )
-                </span>
-              </div>
-              {sliderImpact.warnings.length > 0 && (
-                <div className="slider-warning-text">
-                  <AlertTriangle size={15} />
-                  <span>{sliderImpact.warnings[0]}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* RIGHT COLUMN: Turn-Based NASA Dilemma Card, Real Data Citation, & Mission Log */}
-        <section className="right-column">
-          {/* Compounding Consequences Banner (if an earlier turn's delayed effect triggered today!) */}
-          {triggeredToday.length > 0 && (
-            <div className="compounding-alert-box" role="status">
-              <div className="compounding-head">
-                <Clock size={17} />
-                <strong>Compounding Consequence From an Earlier Decision!</strong>
-              </div>
-              {triggeredToday.map((item, idx) => (
-                <p key={idx}>
-                  • <strong>{item.sourceTitle}:</strong> {item.description}
-                </p>
+      {/* ------------------------------------------------------------------ */}
+      {/* 4. MISSION ACTION STATION (TURNS & DECISIONS)                       */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="action-station">
+        {/* Compounding Delayed Alert (if earlier turn consequence hit today!) */}
+        {triggeredToday.length > 0 && (
+          <div className="delayed-alert-banner animate-bounce">
+            <Clock size={20} className="icon-pulse" />
+            <div>
+              <strong>Compounding Consequence Triggered Today!</strong>
+              {triggeredToday.map((c, idx) => (
+                <div key={idx}>• {c.description}</div>
               ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Last Turn Feedback Toast */}
-          {lastTurnFeedback && !gameStatus.over && (
-            <div className="last-turn-banner">
-              <div className="last-turn-title">
-                <CheckCircle size={16} />
-                <span>
-                  {config.dayUnitName} {lastTurnFeedback.day} Outcome:{' '}
-                  <strong>{lastTurnFeedback.choiceTitle}</strong>
-                </span>
+        {!gameStatus.over ? (
+          <div className="event-action-card">
+            {/* Event Header Banner */}
+            <div className="event-banner-head">
+              <div className="day-badge-chunky">
+                {site === 'moon' ? 'LUNAR CYCLE' : 'MARTIAN SOL'} {day} OF {config.totalDays}
               </div>
-              <p>{lastTurnFeedback.whyItMatters}</p>
-            </div>
-          )}
-
-          {!gameStatus.over ? (
-            <div className="event-decision-card">
-              <div className="event-card-top">
-                <div className="event-badges">
-                  <span className="step-badge">
-                    STEP 2 • {config.dayUnitName.toUpperCase()} {day} OF {config.totalDays}
-                  </span>
-                  <span className={`severity-badge sev-${currentEvent.severity}`}>
-                    {currentEvent.severity === 'critical'
-                      ? 'CRITICAL MISSION EVENT'
-                      : currentEvent.severity === 'warning'
-                      ? 'ENGINEERING TRADE-OFF'
-                      : 'SCIENCE & OPS DILEMMA'}
-                  </span>
-                  {currentEvent.isLiveDonki && (
-                    <span className="live-donki-badge">
-                      <Sparkles size={13} /> LIVE NASA API TELEMETRY
-                    </span>
-                  )}
-                </div>
-
-                {liveDonkiCard && !currentEvent.isLiveDonki && (
-                  <button
-                    id="load-live-donki-inline-btn"
-                    className="mini-live-btn"
-                    onClick={() => setInjectedLiveCard(liveDonkiCard)}
-                    title="Replace this card with today's actual solar flare/CME from NASA DONKI!"
-                  >
-                    <Sparkles size={13} /> Test Live DONKI Storm
-                  </button>
-                )}
-              </div>
-
-              <h2 className="event-title">{currentEvent.title}</h2>
-              {currentEvent.flrClassOrSpeed && (
-                <div className="telemetry-sub-pill">{currentEvent.flrClassOrSpeed}</div>
-              )}
-
-              <p className="event-story">{currentEvent.storyKidFriendly}</p>
-
-              <div className="constraint-callout">
-                <strong>⚖️ Real Engineering Constraint:</strong> {currentEvent.engineeringConstraint}
-              </div>
-
-              {/* Traceable NASA Dataset Citation Box */}
-              <div className="nasa-citation-box">
-                <div className="citation-header">
-                  <span className="citation-badge">
-                    📊 Grounded in {currentEvent.nasaCitation.dataset} Data ({currentEvent.nasaCitation.referenceId})
-                  </span>
-                  <a
-                    href={currentEvent.nasaCitation.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="citation-link"
-                  >
-                    Verify Source <ExternalLink size={12} />
-                  </a>
-                </div>
-                <div className="citation-measured">
-                  <strong>NASA Measurement:</strong> {currentEvent.nasaCitation.measuredValue}
-                </div>
-                <p className="citation-explain">{currentEvent.nasaCitation.explanation}</p>
-              </div>
-
-              {/* Decision Options (No Safe/Free Choice!) */}
-              <div className="choices-list" role="radiogroup" aria-label="Mission Decision Choices">
-                <div className="choices-prompt">
-                  Choose your response (every choice has a real resource cost):
-                </div>
-                {currentEvent.choices.map((choice) => {
-                  const isSelected = selectedChoiceId === choice.id;
-                  return (
-                    <button
-                      key={choice.id}
-                      id={`choice-btn-${choice.id}`}
-                      type="button"
-                      className={`choice-card ${isSelected ? 'choice-selected' : ''}`}
-                      onClick={() => setSelectedChoiceId(choice.id)}
-                    >
-                      <div className="choice-card-header">
-                        <span className="choice-radio-indicator" />
-                        <span className="choice-label">{choice.label}</span>
-                      </div>
-                      <div className="choice-tradeoff-pills">
-                        <span
-                          className={`impact-pill ${
-                            choice.effects.powerDelta >= 0 ? 'pill-pos' : 'pill-neg'
-                          }`}
-                        >
-                          ⚡ {choice.effects.powerDelta >= 0 ? '+' : ''}
-                          {choice.effects.powerDelta} Power
-                        </span>
-                        <span
-                          className={`impact-pill ${
-                            choice.effects.lifeSupportDelta >= 0 ? 'pill-pos' : 'pill-neg'
-                          }`}
-                        >
-                          🫧 {choice.effects.lifeSupportDelta >= 0 ? '+' : ''}
-                          {choice.effects.lifeSupportDelta} Life Support
-                        </span>
-                        <span
-                          className={`impact-pill ${
-                            choice.effects.healthDelta >= 0 ? 'pill-pos' : 'pill-neg'
-                          }`}
-                        >
-                          ❤️ {choice.effects.healthDelta >= 0 ? '+' : ''}
-                          {choice.effects.healthDelta} Health
-                        </span>
-                        <span
-                          className={`impact-pill ${
-                            choice.effects.radiationDoseMsV <= 0.4 ? 'pill-pos' : 'pill-warn'
-                          }`}
-                        >
-                          ☢️ {choice.effects.radiationDoseMsV >= 0 ? '+' : ''}
-                          {choice.effects.radiationDoseMsV} mSv
-                        </span>
-                        <span className="impact-pill pill-sci">
-                          🔬 +{choice.effects.scienceDelta} Science
-                        </span>
-                      </div>
-                      {choice.effects.delayedEffect && (
-                        <div className="delayed-warning-tag">
-                          ⏳ <strong>Compounds in {choice.effects.delayedEffect.turnsLater} days:</strong>{' '}
-                          {choice.effects.delayedEffect.description}
-                        </div>
-                      )}
-                      {isSelected && (
-                        <div className="choice-why-preview">
-                          <strong>Why this matters:</strong> {choice.whyItMatters}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="commit-action-bar">
-                <button
-                  id="commit-turn-btn"
-                  className="commit-turn-btn"
-                  disabled={!selectedChoice}
-                  onClick={handleCommitTurn}
-                >
-                  <span>
-                    {selectedChoice
-                      ? `Execute ${config.dayUnitName} ${day} Command & Advance →`
-                      : `Select a Decision Above to Complete ${config.dayUnitName} ${day}`}
-                  </span>
-                </button>
+              <div className="event-title-group">
+                <h2 className="event-hero-title">{currentEvent.title}</h2>
+                <p className="event-hero-story">{currentEvent.storyKidFriendly}</p>
               </div>
             </div>
-          ) : (
-            /* End-of-Mission Debrief & Replay Screen */
-            <div className="mission-debrief-card">
-              <div className={`debrief-banner ${gameStatus.won ? 'debrief-win' : 'debrief-loss'}`}>
-                <span className="step-badge">MISSION DEBRIEF & ENGINEERING REPORT</span>
-                <h2>{gameStatus.won ? '🏆 Outpost Mission Succeeded!' : '⚠️ Mission Ended Early'}</h2>
-                <p className="debrief-reason">{gameStatus.reason}</p>
-              </div>
 
-              <div className="debrief-lesson-box">
-                <h3>What Real NASA Mission Planners Learn From This:</h3>
-                <p>{gameStatus.lesson}</p>
-              </div>
-
-              <div className="debrief-final-metrics">
-                <div className="debrief-metric">
-                  <span>Final Power</span>
-                  <strong>{power}%</strong>
-                </div>
-                <div className="debrief-metric">
-                  <span>Final Life Support</span>
-                  <strong>{lifeSupport}%</strong>
-                </div>
-                <div className="debrief-metric">
-                  <span>Final Crew Health</span>
-                  <strong>{health}%</strong>
-                </div>
-                <div className="debrief-metric">
-                  <span>Total Radiation Dose</span>
-                  <strong>
-                    {radiationMsV.toFixed(2)} / {config.safeRadiationLimitMsV} mSv
-                  </strong>
-                </div>
-                <div className="debrief-metric">
-                  <span>Science Achieved</span>
-                  <strong>
-                    {science} / {config.scienceTarget} pts
-                  </strong>
-                </div>
-              </div>
-
-              <div className="debrief-actions">
-                <button
-                  id="replay-same-site-btn"
-                  className="primary-action-btn"
-                  onClick={() => resetMission(site, difficulty)}
-                >
-                  <RotateCcw size={16} />
-                  <span>Play {config.name} Again</span>
-                </button>
-                <button
-                  id="switch-other-site-btn"
-                  className="secondary-action-btn"
-                  onClick={() =>
-                    resetMission(site === 'moon' ? 'mars' : 'moon', difficulty)
-                  }
-                >
-                  <Compass size={16} />
-                  <span>
-                    Try {site === 'moon' ? 'Mars: Jezero Outpost' : 'Moon: Shackleton Base'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Mission Telemetry Log & Site Reference Facts */}
-          <div className="mission-log-panel">
-            <div className="log-panel-head">
-              <h3>
-                <Activity size={16} /> Mission Decision Log & NASA Site Facts
-              </h3>
+            {/* Quick Science Fact / Real NASA Citation Badge */}
+            <div className="nasa-fact-badge">
+              <span>🔬 <strong>Real NASA Science ({currentEvent.nasaCitation.dataset}):</strong> {currentEvent.nasaCitation.measuredValue}</span>
               <button
-                id="restart-mission-small-btn"
-                className="text-reset-btn"
-                onClick={() => resetMission(site, difficulty)}
+                className="fact-verify-btn"
+                onClick={() => {
+                  sound.click();
+                  setIsScienceModalOpen(true);
+                }}
               >
-                <RotateCcw size={13} /> Reset Mission
+                Why this happens <Info size={13} />
               </button>
             </div>
 
-            <div className="site-quick-facts">
+            {/* 3 Big Chunky Action Cards (Every Choice Has A Cost!) */}
+            <div className="action-cards-grid" role="radiogroup" aria-label="Select Mission Decision">
+              {currentEvent.choices.map((choice) => {
+                const isSelected = selectedChoiceId === choice.id;
+                return (
+                  <button
+                    key={choice.id}
+                    id={`choice-${choice.id}`}
+                    type="button"
+                    className={`big-choice-btn ${isSelected ? 'choice-active' : ''}`}
+                    onClick={() => {
+                      sound.click();
+                      setSelectedChoiceId(choice.id);
+                    }}
+                  >
+                    <div className="choice-btn-top">
+                      <div className="choice-radio-dot">{isSelected ? '✓' : ''}</div>
+                      <span className="choice-btn-title">{choice.label}</span>
+                    </div>
+
+                    {/* Trade-off summary pills */}
+                    <div className="choice-tradeoff-tags">
+                      <span
+                        className={`trade-tag ${
+                          choice.effects.powerDelta >= 0 ? 'tag-pos' : 'tag-neg'
+                        }`}
+                      >
+                        ⚡ {choice.effects.powerDelta >= 0 ? '+' : ''}
+                        {choice.effects.powerDelta}% Power
+                      </span>
+                      <span
+                        className={`trade-tag ${
+                          choice.effects.lifeSupportDelta >= 0 ? 'tag-pos' : 'tag-neg'
+                        }`}
+                      >
+                        🫧 {choice.effects.lifeSupportDelta >= 0 ? '+' : ''}
+                        {choice.effects.lifeSupportDelta}% Air
+                      </span>
+                      <span
+                        className={`trade-tag ${
+                          choice.effects.healthDelta >= 0 ? 'tag-pos' : 'tag-neg'
+                        }`}
+                      >
+                        ❤️ {choice.effects.healthDelta >= 0 ? '+' : ''}
+                        {choice.effects.healthDelta}% Safety
+                      </span>
+                      <span
+                        className={`trade-tag ${
+                          choice.effects.radiationDoseMsV <= 0.4 ? 'tag-pos' : 'tag-warn'
+                        }`}
+                      >
+                        ☢️ {choice.effects.radiationDoseMsV >= 0 ? '+' : ''}
+                        {choice.effects.radiationDoseMsV} mSv
+                      </span>
+                      <span className="trade-tag tag-sci">
+                        ⭐ +{choice.effects.scienceDelta} Stars
+                      </span>
+                    </div>
+
+                    {/* Consequence explanation */}
+                    <div className="choice-explain-text">
+                      {choice.whyItMatters}
+                    </div>
+
+                    {choice.effects.delayedEffect && (
+                      <div className="delayed-tag-pill">
+                        ⏳ <strong>Compounds in {choice.effects.delayedEffect.turnsLater} days:</strong>{' '}
+                        {choice.effects.delayedEffect.description}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Quick Power Sliders Toggle (Keep screen clean by default, open when child wants to tweak power) */}
+            <div className="power-quick-controls">
+              <div className="power-quick-header">
+                <div className="quick-presets-group">
+                  <span className="quick-label">⚡ Power Preset:</span>
+                  <button
+                    className="preset-pill"
+                    onClick={() => applyPreset('nominal')}
+                  >
+                    Nominal Balanced
+                  </button>
+                  <button
+                    className="preset-pill"
+                    onClick={() => applyPreset('storm')}
+                  >
+                    🛡️ Max Shield
+                  </button>
+                  <button
+                    className="preset-pill"
+                    onClick={() => applyPreset('greenhouse')}
+                  >
+                    🥗 Farm Surge
+                  </button>
+                  <button
+                    className="preset-pill"
+                    onClick={() => applyPreset('science')}
+                  >
+                    🔭 Science Push
+                  </button>
+                </div>
+
+                <button
+                  className="customize-power-link"
+                  onClick={() => {
+                    sound.click();
+                    setShowPowerSliders(!showPowerSliders);
+                  }}
+                >
+                  <Sliders size={14} />
+                  <span>{showPowerSliders ? 'Hide Sliders' : 'Customize Power Sliders'}</span>
+                </button>
+              </div>
+
+              {/* Expandable Power Sliders */}
+              {showPowerSliders && (
+                <div className="expandable-sliders-box">
+                  <div className="slider-row">
+                    <span>🫧 Life Support (ECLSS): <strong>{allocation.lifeSupport}%</strong></span>
+                    <input
+                      type="range"
+                      min={10}
+                      max={50}
+                      step={2}
+                      value={allocation.lifeSupport}
+                      onChange={(e) =>
+                        setAllocation({ ...allocation, lifeSupport: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="slider-row">
+                    <span>🛡️ Radiation Shielding: <strong>{allocation.shielding}%</strong></span>
+                    <input
+                      type="range"
+                      min={10}
+                      max={50}
+                      step={2}
+                      value={allocation.shielding}
+                      onChange={(e) =>
+                        setAllocation({ ...allocation, shielding: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="slider-row">
+                    <span>🥗 Greenhouse Crops: <strong>{allocation.greenhouse}%</strong></span>
+                    <input
+                      type="range"
+                      min={5}
+                      max={45}
+                      step={2}
+                      value={allocation.greenhouse}
+                      onChange={(e) =>
+                        setAllocation({ ...allocation, greenhouse: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="slider-row">
+                    <span>📡 Science & Comms: <strong>{allocation.scienceComms}%</strong></span>
+                    <input
+                      type="range"
+                      min={5}
+                      max={45}
+                      step={2}
+                      value={allocation.scienceComms}
+                      onChange={(e) =>
+                        setAllocation({ ...allocation, scienceComms: Number(e.target.value) })
+                      }
+                    />
+                  </div>
+                  <div className="slider-info-note">
+                    Total Load: <strong>{sliderImpact.totalAllocatedPercent}%</strong> (
+                    {sliderImpact.netPowerFromSliders >= 0
+                      ? `Battery charges +${sliderImpact.netPowerFromSliders}%`
+                      : `Battery drains ${sliderImpact.netPowerFromSliders}%`}
+                    )
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BIG ARCADE ADVANCE / NEXT SOL BUTTON */}
+            <div className="launch-next-action-row">
+              <button
+                id="launch-next-sol-btn"
+                className="giant-arcade-btn"
+                disabled={!selectedChoice}
+                onClick={handleCommitTurn}
+              >
+                <span>
+                  {selectedChoice
+                    ? `CONFIRM ACTION & LAUNCH NEXT ${config.dayUnitName.toUpperCase()} 🚀`
+                    : `SELECT ONE OF THE 3 ACTION CARDS ABOVE TO PROCEED 👆`}
+                </span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* End-of-Mission Debrief & Replay */
+          <div className="game-over-card">
+            <div className={`game-over-banner ${gameStatus.won ? 'banner-win' : 'banner-lost'}`}>
+              <h2>{gameStatus.title}</h2>
+              <p className="game-over-reason">{gameStatus.reason}</p>
+            </div>
+
+            <div className="game-over-lesson">
+              <h3>What Real NASA Mission Planners Learn:</h3>
+              <p>{gameStatus.lesson}</p>
+            </div>
+
+            <div className="game-over-stats-grid">
+              <div className="stat-pod">
+                <span>Final Battery</span>
+                <strong>{power}%</strong>
+              </div>
+              <div className="stat-pod">
+                <span>Final Life Support</span>
+                <strong>{lifeSupport}%</strong>
+              </div>
+              <div className="stat-pod">
+                <span>Total Radiation</span>
+                <strong>{radiationMsV.toFixed(1)} / {config.safeRadiationLimitMsV} mSv</strong>
+              </div>
+              <div className="stat-pod">
+                <span>Discovery Stars</span>
+                <strong>{science} / {config.scienceTarget} ⭐</strong>
+              </div>
+            </div>
+
+            <div className="game-over-actions">
+              <button
+                id="replay-btn"
+                className="giant-arcade-btn"
+                onClick={() => resetMission(site, difficulty)}
+              >
+                🔄 Play Again on {config.name}
+              </button>
+              <button
+                id="switch-planet-btn"
+                className="secondary-arcade-btn"
+                onClick={() => resetMission(site === 'moon' ? 'mars' : 'moon', difficulty)}
+              >
+                🚀 Fly to {site === 'moon' ? 'Mars Outpost' : 'Moon Base'}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 5. OPTIONAL MISSION LOG DRAWER (Hidden by default, click to open)  */}
+      {/* ------------------------------------------------------------------ */}
+      <footer className="game-footer">
+        <button
+          className="drawer-toggle-btn"
+          onClick={() => setShowLogsDrawer(!showLogsDrawer)}
+        >
+          <Activity size={16} />
+          <span>{showLogsDrawer ? 'Hide Mission Log & Site Telemetry' : 'View Mission Log & Site Facts'}</span>
+        </button>
+
+        {showLogsDrawer && (
+          <div className="drawer-content">
+            <div className="site-fact-sheet">
               <strong>📍 {config.locationName} ({config.coordinates}):</strong>
               <ul>
-                {config.siteFacts.map((f, i) => (
-                  <li key={i}>{f}</li>
+                {config.siteFacts.map((fact, idx) => (
+                  <li key={idx}>{fact}</li>
                 ))}
               </ul>
             </div>
 
-            {missionLogs.length > 0 && (
-              <div className="log-history-list">
+            {missionLogs.length > 0 ? (
+              <div className="mini-logs-list">
                 {missionLogs.map((entry) => (
-                  <div key={entry.day} className="log-entry-item">
-                    <div className="log-entry-top">
-                      <strong>
-                        {config.dayUnitName} {entry.day}: {entry.choiceLabel}
-                      </strong>
-                      <span className="log-source-tag">{entry.nasaSourceTag}</span>
-                    </div>
-                    <p className="log-entry-lesson">{entry.lessonLearned}</p>
-                    <div className="log-entry-stats">
-                      <span>⚡ Pwr: {entry.powerEnd}%</span>
-                      <span>🫧 O₂: {entry.lifeSupportEnd}%</span>
-                      <span>❤️ Health: {entry.healthEnd}%</span>
-                      <span>☢️ Dose: {entry.radiationMsV} mSv</span>
-                      <span>🔬 +{entry.scienceEarned} Sci</span>
-                    </div>
+                  <div key={entry.day} className="log-row">
+                    <strong>{config.dayUnitName} {entry.day}:</strong> {entry.choiceLabel} (
+                    ⚡ {entry.powerEnd}% | 🫧 {entry.lifeSupportEnd}% | ☢️ {entry.radiationMsV} mSv | ⭐ +{entry.scienceEarned})
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="mini-logs-empty">No turns completed yet.</div>
             )}
           </div>
-        </section>
-      </main>
+        )}
+      </footer>
 
-      {/* NASA & CSA Science Traceability Modal */}
+      {/* NASA Science & Data Traceability Modal for Teachers/Judges */}
       <ScienceTraceabilityModal
         isOpen={isScienceModalOpen}
         onClose={() => setIsScienceModalOpen(false)}
