@@ -111,13 +111,58 @@ export function EndScreen({ game, onReplay, onOther, onMenu }: { game: GameState
           <h2>📈 Your mission, day by day</h2>
           <Chart game={game} />
         </div>
-        <div className="card">
-          <h2>🧠 What you learned</h2>
-          <ul className="lessons">
-            {ls.map((l, i) => (
-              <li key={i}>{l}</li>
-            ))}
-          </ul>
+        <div className="card what-you-learned-card">
+          <h2>🧠 What you learned as a NASA Commander</h2>
+          
+          <div className="mission-specific-lessons">
+            <h3 className="subhead-lessons">Flight Director Debrief from Your Run:</h3>
+            <ul className="lessons">
+              {ls.map((l, i) => (
+                <li key={i}>{l}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="core-engineering-takeaways">
+            <h3 className="subhead-lessons">Core Space Engineering Trade-Offs:</h3>
+            <div className="takeaway-grid">
+              <div className="takeaway-item">
+                <span className="takeaway-icon">🫧</span>
+                <div>
+                  <strong>Life Support (ECLSS) Baseline:</strong>
+                  <p>In space, breathing isn't free. Fresh oxygen & CO₂ scrubbers require a continuous power baseline before any science can run.</p>
+                </div>
+              </div>
+              <div className="takeaway-item">
+                <span className="takeaway-icon">🔋</span>
+                <div>
+                  <strong>Power Buffering & Weather Hazards:</strong>
+                  <p>Solar energy isn't guaranteed. Dust storms and multi-day lunar nights require charging battery banks early during peak sunlight.</p>
+                </div>
+              </div>
+              <div className="takeaway-item">
+                <span className="takeaway-icon">🛡️</span>
+                <div>
+                  <strong>NASA DONKI Space Weather Alerts:</strong>
+                  <p>Solar flares & CMEs eject dangerous protons. Space weather satellite forecasts give commanders the heads-up to raise magnetic shields.</p>
+                </div>
+              </div>
+              <div className="takeaway-item">
+                <span className="takeaway-icon">🌱</span>
+                <div>
+                  <strong>Bioregenerative Food Lead Times:</strong>
+                  <p>Hydroponic crops take multiple days to grow. A smart commander plans ahead before emergency food rations deplete.</p>
+                </div>
+              </div>
+              <div className="takeaway-item">
+                <span className="takeaway-icon">📡</span>
+                <div>
+                  <strong>Speed-of-Light Comms Latency:</strong>
+                  <p>On Mars, radio takes minutes to reach Earth. Remote crews must make independent trade-offs without instant mission control guidance.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div className="card">
           <h2>☢️ Radiation check</h2>

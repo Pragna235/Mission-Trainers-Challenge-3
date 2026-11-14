@@ -15,6 +15,8 @@ import { factFor } from '../data/facts';
 import { Meter, RealTag, SpeakButton, Stars, Term } from './ui';
 import { OutpostSchematic } from './OutpostSchematic';
 import { CustomizePowerCells } from './CustomizePowerCells';
+import { CapcomAndPlans } from './CapcomAndPlans';
+import { CriticalFailureModal } from './CriticalFailureModal';
 import { ScienceTraceabilityModal } from './ScienceTraceabilityModal';
 
 const SYSTEMS: { id: SystemId; icon: string; name: string; help: string }[] = [
@@ -127,6 +129,7 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
   const [showHowTo, setShowHowTo] = useState(game.sol === 1 && game.history.length === 0);
   const [showDebrief, setShowDebrief] = useState(false);
   const [showTraceModal, setShowTraceModal] = useState(false);
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
 
   const solar = solarCells(game);
   const avail = availableCells(game);
@@ -146,11 +149,26 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
   }, [alloc, game, fromBattery, toBattery]);
 
   const change = (id: SystemId, delta: number) => {
+    setActivePlanId(null);
     setAlloc((a) => {
       const next = { ...a, [id]: Math.max(0, Math.min(RULES.maxPerSystem, a[id] + delta)) };
       if (totalAlloc(next) > avail) return a;
       return next;
     });
+  };
+
+  const handleApplyPlan = (planAlloc: Allocation, planId: string) => {
+    const capped = { ...planAlloc };
+    let curTotal = totalAlloc(capped);
+    while (curTotal > avail) {
+      if (capped.science > 0) capped.science--;
+      else if (capped.shield > 0) capped.shield--;
+      else if (capped.greenhouse > 0) capped.greenhouse--;
+      else break;
+      curTotal = totalAlloc(capped);
+    }
+    setAlloc(capped);
+    setActivePlanId(planId);
   };
 
   const launch = () => {
@@ -242,6 +260,15 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
         </section>
 
         <section className="plan-col">
+          <CapcomAndPlans
+            game={game}
+            solar={solar}
+            avail={avail}
+            alloc={alloc}
+            onApplyPlan={handleApplyPlan}
+            activePlanId={activePlanId}
+          />
+
           <CustomizePowerCells
             game={game}
             alloc={alloc}
@@ -296,14 +323,21 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
       </div>
 
       {showHowTo && <HowToPlay game={game} onClose={() => setShowHowTo(false)} />}
-      {showDebrief && (
-        <Debrief
+      {game.status === 'lost' ? (
+        <CriticalFailureModal
           game={game}
-          onNext={() => {
-            setShowDebrief(false);
-            if (game.status !== 'playing') onEnd();
-          }}
+          onViewReport={onEnd}
         />
+      ) : (
+        showDebrief && (
+          <Debrief
+            game={game}
+            onNext={() => {
+              setShowDebrief(false);
+              if (game.status !== 'playing') onEnd();
+            }}
+          />
+        )
       )}
       {showTraceModal && (
         <ScienceTraceabilityModal
