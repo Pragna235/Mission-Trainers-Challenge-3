@@ -5,7 +5,8 @@
 
 ---
 
-**Prototype Link** - **https://pragna235.github.io/Mission-Trainers-Challenge-3/**
+- **Prototype Link** - **https://pragna235.github.io/Mission-Trainers-Challenge-3/**
+- **Complete Demo Link** - **https://drive.google.com/file/d/15PsxaxPWO7PEU-tBDM15ntwnhuyzf45a/view?usp=drivesdk**
 
 ## 🚀 Overview
 
