@@ -231,40 +231,75 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
         })}
       </div>
 
-      <OutpostSchematic game={game} alloc={alloc} />
+      <div className="mission-dashboard-2col">
+        {/* LEFT COLUMN: Simulation, Status Meters, Messages from Earth */}
+        <section className="dashboard-left-col">
+          <OutpostSchematic game={game} alloc={alloc} />
 
-      <div className="play-grid">
-        <section className="status-col">
-          <Meter icon="🫧" label="Air" value={game.air} help="Oxygen for the crew. Below 25% the crew gets sick." />
-          <Meter icon="❤️" label="Crew health" value={game.health} help="Hurt by radiation, hunger and low air. Heals slowly on good days." />
-          <Meter
-            icon="🔋"
-            label="Battery"
-            value={game.battery}
-            max={site.batteryMax}
-            display={`${game.battery}/${site.batteryMax} cells`}
-            help="Stored power for dark or dusty days."
-          />
-          <Meter
-            icon="🥔"
-            label="Food"
-            value={game.food}
-            max={30}
-            warnBelow={20}
-            display={`${game.food} meals (${mealsDays} ${site.dayWord}s)`}
-            help={`The crew eats ${RULES.mealsPerSol} meals a ${site.dayWord}. Growing: ${upcomingHarvest} meals.`}
-          />
-          <div className="card dose-card">
-            <div>
-              ☢️ <Term word="Radiation dose">How much radiation energy the crew’s bodies soaked up. Measured in mSv (millisieverts).</Term> so far:{' '}
-              <b>{game.totalDoseMsv.toFixed(1)} mSv</b>
+          <div className="status-meters-grid">
+            <Meter icon="🫧" label="Air" value={game.air} help="Oxygen for the crew. Below 25% the crew gets sick." />
+            <Meter icon="❤️" label="Crew health" value={game.health} help="Hurt by radiation, hunger and low air. Heals slowly on good days." />
+            <Meter
+              icon="🔋"
+              label="Battery"
+              value={game.battery}
+              max={site.batteryMax}
+              display={`${game.battery}/${site.batteryMax} cells`}
+              help="Stored power for dark or dusty days."
+            />
+            <Meter
+              icon="🥔"
+              label="Food"
+              value={game.food}
+              max={30}
+              warnBelow={20}
+              display={`${game.food} meals (${mealsDays} ${site.dayWord}s)`}
+              help={`The crew eats ${RULES.mealsPerSol} meals a ${site.dayWord}. Growing: ${upcomingHarvest} meals.`}
+            />
+            <div className="card dose-card-compact">
+              <div className="dose-top">
+                <span>☢️ <Term word="Radiation dose">Accumulated body radiation in mSv.</Term></span>
+                <strong>{game.totalDoseMsv.toFixed(1)} mSv</strong>
+              </div>
+              <div className="small muted">Normal: {site.baseDoseMsv} mSv/sol</div>
+              <RealTag kind="measured" label={site.baseDoseSource} />
             </div>
-            <div className="small muted">Normal daily dose here: {site.baseDoseMsv} mSv (an Earth person gets about 0.008 mSv a day).</div>
-            <RealTag kind="measured" label={site.baseDoseSource} />
+          </div>
+
+          <div className="card inbox-compact">
+            <div className="inbox-head-compact">
+              <div className="inbox-head-title">
+                <span>📡</span>
+                <strong>Messages from Earth ({msgs.length})</strong>
+                <span className="comms-delay-chip">{site.commsDelayReal}</span>
+              </div>
+            </div>
+            {msgs.length === 0 ? (
+              <p className="muted small" style={{ margin: '4px 0 0' }}>No messages yet. Keep your radio on!</p>
+            ) : (
+              <div className="inbox-recent-messages">
+                {msgs.slice(-2).map((m) => (
+                  <div key={m.id} className={`msg msg-compact msg-${m.kind} ${newMsgs.includes(m) ? 'new' : ''}`}>
+                    <div className="msg-head">
+                      <span>{site.dayWord} {m.sentSol} → arrived {site.dayWord} {m.arriveSol}</span>
+                      <SpeakButton text={m.text} />
+                    </div>
+                    <p style={{ margin: '2px 0 4px', fontSize: '0.84rem' }}>{m.text}</p>
+                    {m.realData && <RealTag kind="archived" label={`In-game flare based on a real ${m.realData.label}`} link={m.realData.link} />}
+                  </div>
+                ))}
+              </div>
+            )}
+            {game.messages.some((m) => m.missed) && (
+              <div className="msg msg-missed" style={{ marginTop: '4px', fontSize: '0.78rem' }}>
+                📵 You missed {game.messages.filter((m) => m.missed).length} message(s) with radio off.
+              </div>
+            )}
           </div>
         </section>
 
-        <section className="plan-col">
+        {/* RIGHT COLUMN: Capcom briefing, Pre-made plans, Custom power cells, and Run button */}
+        <section className="dashboard-right-col">
           <CapcomAndPlans
             game={game}
             solar={solar}
@@ -288,41 +323,14 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
           />
 
           <div className="launch-row">
-            <div className="small">
-              {fromBattery > 0 ? `This plan uses ${fromBattery} battery cell(s). ` : ''}
-              {toBattery > 0 ? `${toBattery} spare cell(s) will charge the battery. ` : ''}
-              Battery after: <b>{preview.battery}</b>/{site.batteryMax}
+            <div className="small launch-power-note">
+              {fromBattery > 0 ? <span className="text-warn">-{fromBattery} battery. </span> : ''}
+              {toBattery > 0 ? <span className="text-green">+{toBattery} charging. </span> : ''}
+              <span>Battery: <b>{preview.battery}</b>/{site.batteryMax}</span>
             </div>
-            <button className="btn btn-primary big" onClick={launch}>
+            <button className="btn btn-primary big btn-run-sol" onClick={launch}>
               Run {site.dayWord} {game.sol} ▶
             </button>
-          </div>
-        </section>
-
-        <section className="inbox-col">
-          <div className="card inbox">
-            <h2>📡 Messages from Earth</h2>
-            <p className="small muted">
-              <Term word="Communication delay">{site.commsDelayReal}</Term>:{' '}
-              {site.commsDelaySols ? `messages arrive ${site.commsDelaySols} ${site.dayWord} late here.` : 'messages arrive almost instantly here.'}
-            </p>
-            {msgs.length === 0 && <p className="muted">No messages yet. Keep your radio on!</p>}
-            {msgs.map((m) => (
-              <div key={m.id} className={`msg msg-${m.kind} ${newMsgs.includes(m) ? 'new' : ''}`}>
-                {newMsgs.includes(m) && <span className="new-badge">NEW</span>}
-                <div className="msg-head">
-                  <span>
-                    Sent {site.dayWord} {m.sentSol} → arrived {site.dayWord} {m.arriveSol}
-                  </span>
-                  <SpeakButton text={m.text} />
-                </div>
-                <p>{m.text}</p>
-                {m.realData && <RealTag kind="archived" label={`In-game flare based on a real ${m.realData.label}`} link={m.realData.link} />}
-              </div>
-            ))}
-            {game.messages.some((m) => m.missed) && (
-              <div className="msg msg-missed">📵 You missed {game.messages.filter((m) => m.missed).length} message(s) because the radio was off.</div>
-            )}
           </div>
         </section>
       </div>

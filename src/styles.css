@@ -967,11 +967,12 @@ button:focus-visible, a:focus-visible, .term:focus-visible { outline: 3px solid 
 }
 
 .hero-main-title {
-  font-family: var(--font-title, system-ui);
-  font-size: 2.3rem;
-  font-weight: 900;
+  font-family: 'Fredoka', 'Righteous', 'Space Grotesk', system-ui, sans-serif;
+  font-size: 2.7rem;
+  font-weight: 800;
   color: #ffffff;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.02em;
+  text-shadow: 0 4px 24px rgba(56, 189, 248, 0.4);
 }
 
 .highlight-yellow { color: #facc15; }
@@ -2268,5 +2269,328 @@ button:focus-visible, a:focus-visible, .term:focus-visible { outline: 3px solid 
   border: none;
   font-weight: 800;
   cursor: pointer;
+}
+
+
+/* ==========================================================================
+   NON-SCROLLING 2-COLUMN MISSION DASHBOARD LAYOUT (Change 2)
+   ========================================================================== */
+
+.mission-dashboard-2col {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+@media (min-width: 1400px) {
+  .mission-dashboard-2col {
+    grid-template-columns: 1.12fr 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .mission-dashboard-2col {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Left Column */
+.dashboard-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashboard-left-col .outpost-schematic-wrap {
+  margin-bottom: 0;
+}
+
+.dashboard-left-col .schematic-svg {
+  height: 220px;
+  width: 100%;
+}
+
+@media (min-width: 1200px) {
+  .dashboard-left-col .schematic-svg {
+    height: 240px;
+  }
+}
+
+.status-meters-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .status-meters-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.status-meters-grid .meter {
+  padding: 8px 12px;
+}
+
+.dose-card-compact {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+}
+
+.dose-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.dose-top strong {
+  color: #facc15;
+}
+
+/* Compact Inbox */
+.inbox-compact {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid var(--card-border);
+}
+
+.inbox-head-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.inbox-head-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: #ffffff;
+}
+
+.comms-delay-chip {
+  background: rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.inbox-recent-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.msg-compact {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Right Column: Planning & Controls (Compact to avoid scrolling) */
+.dashboard-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-right-col .capcom-briefing-card {
+  padding: 10px 14px;
+  margin-bottom: 0;
+  border-radius: 14px;
+}
+
+.dashboard-right-col .capcom-header {
+  margin-bottom: 4px;
+}
+
+.dashboard-right-col .capcom-message {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  margin: 0 0 8px 0;
+}
+
+.dashboard-right-col .capcom-audio-row {
+  gap: 10px;
+}
+
+.btn-pause-briefing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-pause-briefing:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.btn-pause-briefing:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dashboard-right-col .choose-plan-card {
+  padding: 10px 14px;
+  margin-bottom: 0;
+  border-radius: 14px;
+}
+
+.dashboard-right-col .plan-header-row {
+  margin-bottom: 6px;
+}
+
+.dashboard-right-col .plan-header-left h3 {
+  font-size: 0.88rem;
+}
+
+.dashboard-right-col .premade-plans-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+
+.dashboard-right-col .plan-item-btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.dashboard-right-col .plan-item-title {
+  font-size: 0.82rem;
+}
+
+.dashboard-right-col .plan-item-desc {
+  font-size: 0.72rem;
+  margin-top: 1px;
+}
+
+.dashboard-right-col .customize-power-card {
+  padding: 10px 14px;
+  margin-bottom: 0;
+  border-radius: 14px;
+}
+
+.dashboard-right-col .customize-power-header {
+  margin-bottom: 6px;
+}
+
+.dashboard-right-col .customize-power-header h2 {
+  font-size: 0.95rem;
+}
+
+.dashboard-right-col .power-cells-visual-strip {
+  margin-bottom: 8px;
+  padding: 4px 8px;
+}
+
+.dashboard-right-col .cell-badge {
+  font-size: 0.82rem;
+  padding: 2px 4px;
+}
+
+.dashboard-right-col .system-capsule {
+  padding: 5px 10px;
+  margin-bottom: 4px;
+  border-radius: 10px;
+}
+
+.dashboard-right-col .sys-glyph {
+  font-size: 1rem;
+}
+
+.dashboard-right-col .sys-title {
+  font-size: 0.82rem;
+}
+
+.dashboard-right-col .sys-note {
+  font-size: 0.7rem;
+}
+
+.dashboard-right-col .sys-status-text {
+  font-size: 0.72rem;
+}
+
+.dashboard-right-col .stepper-btn {
+  width: 26px;
+  height: 26px;
+  font-size: 0.95rem;
+}
+
+.dashboard-right-col .pill-block {
+  width: 14px;
+  height: 18px;
+}
+
+.dashboard-right-col .stepper-number {
+  font-size: 0.88rem;
+  min-width: 14px;
+}
+
+/* Launch Row (Visible without scrolling!) */
+.dashboard-right-col .launch-row {
+  margin-top: 2px;
+  padding: 8px 14px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.launch-power-note {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+
+.btn-run-sol {
+  padding: 9px 22px;
+  font-size: 0.98rem;
+  font-weight: 900;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+  color: #040d21;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(56, 189, 248, 0.45);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-run-sol:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(56, 189, 248, 0.65);
 }
 

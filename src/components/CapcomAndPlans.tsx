@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Allocation, GameState } from '../engine/game';
 import { SITES } from '../engine/sites';
-import { speak } from './ui';
 
 interface CapcomAndPlansProps {
   game: GameState;
@@ -34,21 +33,48 @@ export function CapcomAndPlans({
     );
 
     if (isStorm) {
-      return `WARNING: Energetic particles are inbound! Power up your radiation shield to protect crew DNA and cabin ECLSS!`;
+      return `WARNING: Energetic particles inbound! Power up your radiation shield to protect crew DNA and cabin ECLSS!`;
     }
     if (isDust) {
-      return `Martian dust storm active! Sunlight is choked to ${solar} cells. Draw from your battery banks to keep life support nominal!`;
+      return `Martian dust storm active! Sunlight is choked to ${solar} cells. Draw from battery banks to keep life support nominal!`;
     }
     if (isNight) {
       return `Lunar night has fallen! Solar panels produce 0 cells. Survive purely on fuel cells and battery reserves!`;
     }
-    return `Sunlight is strong (${solar} yellow cells)! Decide whether to bank green Battery cells for upcoming hazards, boost Science stars, or speed up food growth.`;
+    return `Sunlight is strong (${solar} yellow cells)! Decide whether to bank green Battery cells, boost Science, or speed up food growth.`;
   })();
 
+  // Stop audio on unmount or sol change
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [game.sol]);
+
   const handleListenBriefing = () => {
+    if (!('speechSynthesis' in window)) return;
+    if (isPlayingAudio) {
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(briefingText.replace(/[“”]/g, ''));
+    u.rate = 0.95;
+    u.pitch = 1.05;
+    u.onend = () => setIsPlayingAudio(false);
+    u.onerror = () => setIsPlayingAudio(false);
     setIsPlayingAudio(true);
-    speak(briefingText);
-    setTimeout(() => setIsPlayingAudio(false), 5000);
+    window.speechSynthesis.speak(u);
+  };
+
+  const handlePauseBriefing = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlayingAudio(false);
   };
 
   // 3 Pre-made plans matching Image 2, adapted dynamically to available cells
@@ -85,7 +111,7 @@ export function CapcomAndPlans({
   return (
     <div className="capcom-plans-container">
       {/* 1. Capcom Briefing Card */}
-      <div className="card capcom-briefing-card">
+      <div className="card capcom-briefing-card compact-briefing">
         <div className="capcom-header">
           <div className="capcom-title-line">
             <span className="capcom-icon">📡</span>
@@ -100,12 +126,23 @@ export function CapcomAndPlans({
 
         <div className="capcom-audio-row">
           <button
-            className="btn-listen-briefing"
+            className={`btn-listen-briefing ${isPlayingAudio ? 'active-playing' : ''}`}
             onClick={handleListenBriefing}
-            aria-label="Listen to Audio Briefing"
+            aria-label={isPlayingAudio ? 'Stop Briefing' : 'Listen to Briefing'}
           >
-            <span className="play-triangle">▶</span>
-            <span>Listen to Briefing</span>
+            <span className="play-triangle">{isPlayingAudio ? '⏹' : '▶'}</span>
+            <span>{isPlayingAudio ? 'Stop Briefing' : 'Listen to Briefing'}</span>
+          </button>
+
+          <button
+            className="btn-pause-briefing"
+            onClick={handlePauseBriefing}
+            disabled={!isPlayingAudio}
+            aria-label="Pause Briefing Audio"
+            title="Pause audio"
+          >
+            <span className="pause-icon">⏸</span>
+            <span>Pause</span>
           </button>
 
           <div className={`audio-waveform-bars ${isPlayingAudio ? 'anim-wave' : ''}`} aria-hidden>
@@ -115,7 +152,7 @@ export function CapcomAndPlans({
       </div>
 
       {/* 2. Choose a Plan (or Customize Below!) */}
-      <div className="card choose-plan-card">
+      <div className="card choose-plan-card compact-plan-card">
         <div className="plan-header-row">
           <div className="plan-header-left">
             <span className="sparkle-icon">✨</span>
