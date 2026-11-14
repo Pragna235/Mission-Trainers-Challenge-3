@@ -1,0 +1,107 @@
+{
+ "fetchedAt": "2026-11-13T10:29:42.381Z",
+ "source": "NASA Open Science Data Repository (OSDR)",
+ "topics": {
+  "bone": [
+   {
+    "accession": "OSD-310",
+    "title": "Spaceflight-induced (STS-62) vertebral bone loss in ovariectomized rats is associated with increased bone marrow adiposity and no change in bone formation",
+    "mission": "STS-62",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-310"
+   },
+   {
+    "accession": "OSD-661",
+    "title": "Toward countering muscle and bone loss with spaceflight: GSK3 as a potential target (Lumbar Spine, HLS, DXA Scanning)",
+    "mission": "",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-661"
+   },
+   {
+    "accession": "OSD-471",
+    "title": "Spaceflight-Induced Bone Loss Alters Failure Mode and Reduces Bending Strength in Murine Spinal Segments from Bion-M1",
+    "mission": "Bion-M1",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-471"
+   }
+  ],
+  "muscle": [
+   {
+    "accession": "GSE93838",
+    "title": "Expression profiling of soleus muscle under the effect of simulated spaceflight",
+    "mission": "",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/GSE93838"
+   },
+   {
+    "accession": "OSD-225",
+    "title": "Expression profiling of soleus muscle under the effect of simulated spaceflight",
+    "mission": "",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-225"
+   },
+   {
+    "accession": "GSE10533",
+    "title": "Effects of spaceflight on murine skeletal muscle gene expression",
+    "mission": "",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/GSE10533"
+   }
+  ],
+  "radiation": [
+   {
+    "accession": "mgp83532",
+    "title": "Space exposed KMC",
+    "mission": "",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/mgp83532"
+   },
+   {
+    "accession": "OSD-489",
+    "title": "Quantifying Cancellous Bone Structural Changes in Microgravity: Axial Skeleton Results from the RR-1 Mission",
+    "mission": "SpaceX-4",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-489"
+   },
+   {
+    "accession": "OSD-992",
+    "title": "Space radiation induces distinct senescent phenotypes: Implications for space travel [scRNA-Seq]",
+    "mission": "",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-992"
+   }
+  ],
+  "plants": [
+   {
+    "accession": "GSE95594",
+    "title": "Characterization of Epigenetic Regulation in an Extraterrestrial Environment: The Arabidopsis Spaceflight Methylome [Bisulfite-seq]",
+    "mission": "",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/GSE95594"
+   },
+   {
+    "accession": "GSE95586",
+    "title": "Characterization of Epigenetic Regulation in an Extraterrestrial Environment: The Arabidopsis Spaceflight Methylome [RNA-seq]",
+    "mission": "",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/GSE95586"
+   },
+   {
+    "accession": "OSD-615",
+    "title": "Glycome profiling and immunohistochemistry uncover changes in cell walls of Arabidopsis thaliana roots during spaceflight: Advanced Plant EXperiment (APEX) 03-1 Raw Dataset",
+    "mission": "SpaceX-5",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-615"
+   }
+  ],
+  "sleep": [
+   {
+    "accession": "OSD-253",
+    "title": "Transcriptional analysis of kidneys from mice flown on the RR-7 mission",
+    "mission": "SpaceX-15",
+    "organism": null,
+    "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-253"
+   }
+  ]
+ }
+}
