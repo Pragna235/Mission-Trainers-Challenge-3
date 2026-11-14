@@ -14,6 +14,8 @@ import { SITES } from '../engine/sites';
 import { factFor } from '../data/facts';
 import { Meter, RealTag, SpeakButton, Stars, Term } from './ui';
 import { OutpostSchematic } from './OutpostSchematic';
+import { CustomizePowerCells } from './CustomizePowerCells';
+import { ScienceTraceabilityModal } from './ScienceTraceabilityModal';
 
 const SYSTEMS: { id: SystemId; icon: string; name: string; help: string }[] = [
   { id: 'life', icon: '🫧', name: 'Life Support', help: `Makes air to breathe. Needs ${RULES.lifeCellsNeeded} cells (1 per astronaut) to keep the air steady.` },
@@ -124,6 +126,7 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
   const [alloc, setAlloc] = useState<Allocation>({ life: 3, greenhouse: 2, shield: 0, science: 1 });
   const [showHowTo, setShowHowTo] = useState(game.sol === 1 && game.history.length === 0);
   const [showDebrief, setShowDebrief] = useState(false);
+  const [showTraceModal, setShowTraceModal] = useState(false);
 
   const solar = solarCells(game);
   const avail = availableCells(game);
@@ -184,8 +187,11 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
         <div className="science-score" title={`Stars at ${RULES.stars.join(' / ')} science points`}>
           🔬 {game.science} <Stars n={RULES.stars.filter((t) => game.science >= t).length} />
         </div>
-        <button className="icon-btn" onClick={() => setShowHowTo(true)} aria-label="How to play">
+        <button className="icon-btn" onClick={() => setShowHowTo(true)} aria-label="How to play" title="Game Rules">
           ❓
+        </button>
+        <button className="btn btn-ghost small-btn nasa-data-btn" onClick={() => setShowTraceModal(true)} title="NASA Datasets & DONKI API">
+          🛰️ NASA Data Hub
         </button>
       </header>
 
@@ -236,70 +242,18 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
         </section>
 
         <section className="plan-col">
-          <div className={`card power-card ${night ? 'night' : ''} ${dust ? 'dust' : ''}`}>
-            <h2>⚡ Today’s power</h2>
-            <div className="power-sources">
-              <span>
-                {night ? '🌑' : dust ? '🌪️' : '☀️'} Sun: <b>{solar}</b> cells {night ? '(lunar night!)' : dust ? '(dust storm!)' : ''}
-              </span>
-              <span>
-                🔋 Battery: <b>{game.battery}</b> cells
-              </span>
-              <span className={left === 0 ? 'left zero' : 'left'}>
-                Unused: <b>{left}</b>
-              </span>
-            </div>
-            <div className="cells-strip" aria-label={`${used} of ${avail} cells used`}>
-              {Array.from({ length: avail }, (_, i) => (
-                <span key={i} className={`cell ${i < used ? 'used' : ''} ${i >= solar ? 'batt' : ''}`} />
-              ))}
-            </div>
-            <div className="small muted">Yellow = sunlight, green = battery. Unused sunlight charges the battery (if there is room).</div>
-          </div>
-
-          {SYSTEMS.map((s) => (
-            <div key={s.id} className={`card system-row sys-${s.id}`}>
-              <div className="sys-icon" aria-hidden>
-                {s.icon}
-              </div>
-              <div className="sys-info">
-                <div className="sys-name">{s.name}</div>
-                <div className="small">{s.help}</div>
-                <div className="sys-preview small">
-                  {s.id === 'life' &&
-                    (alloc.life < RULES.lifeCellsNeeded
-                      ? `⚠️ Air will drop to ${preview.air}%`
-                      : alloc.life > RULES.lifeCellsNeeded
-                        ? `Air will rise to ${preview.air}%`
-                        : `Air stays about ${preview.air}%`)}
-                  {s.id === 'greenhouse' &&
-                    (alloc.greenhouse ? `+${alloc.greenhouse * RULES.mealsPerGreenhouseCell} meals on ${site.dayWord} ${game.sol + RULES.growSols}` : '⚠️ No new food planted')}
-                  {s.id === 'shield' && (alloc.shield ? `Blocks ${Math.round(preview.block * 100)}% of radiation` : 'Shield OFF')}
-                  {s.id === 'science' &&
-                    (alloc.science ? `+${alloc.science * RULES.sciencePerCell} points · 📡 radio ON` : '⚠️ Radio OFF — you may miss messages')}
-                </div>
-              </div>
-              <div className="stepper">
-                <button className="step" onClick={() => change(s.id, -1)} disabled={alloc[s.id] === 0} aria-label={`Less power to ${s.name}`}>
-                  −
-                </button>
-                <div className="step-cells" aria-live="polite">
-                  {Array.from({ length: Math.max(alloc[s.id], 1) }, (_, i) => (
-                    <span key={i} className={`cell ${i < alloc[s.id] ? 'used' : 'empty'}`} />
-                  ))}
-                  <span className="step-num">{alloc[s.id]}</span>
-                </div>
-                <button
-                  className="step"
-                  onClick={() => change(s.id, +1)}
-                  disabled={left <= 0 || alloc[s.id] >= RULES.maxPerSystem}
-                  aria-label={`More power to ${s.name}`}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          ))}
+          <CustomizePowerCells
+            game={game}
+            alloc={alloc}
+            solar={solar}
+            avail={avail}
+            used={used}
+            left={left}
+            fromBattery={fromBattery}
+            toBattery={toBattery}
+            preview={preview}
+            onChange={change}
+          />
 
           <div className="launch-row">
             <div className="small">
@@ -349,6 +303,12 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
             setShowDebrief(false);
             if (game.status !== 'playing') onEnd();
           }}
+        />
+      )}
+      {showTraceModal && (
+        <ScienceTraceabilityModal
+          isOpen={showTraceModal}
+          onClose={() => setShowTraceModal(false)}
         />
       )}
     </div>
