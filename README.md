@@ -5,6 +5,8 @@
 
 ---
 
+**Prototype Link** - **https://pragna235.github.io/Mission-Trainers-Challenge-3/**
+
 ## 🚀 Overview
 
 Space education for kids often oversimplifies mission design into trivia or safe choices without consequences. In reality, human survival on the Moon and Mars is governed by relentless engineering trade-offs:
