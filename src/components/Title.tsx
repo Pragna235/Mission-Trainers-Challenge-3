@@ -307,6 +307,10 @@ export function TitleScreen({
         </div>
       </div>
 
+      <p className="si-footer">
+        🤖 SI disclosure: built with Super Intelligence (AI) assistance — code, text and art reviewed by our team. NASA data is real, not AI-generated.
+      </p>
+
       {/* Space Words & NASA Jargon Decoder Modal */}
       <JargonDecoderModal isOpen={showGlossary} onClose={() => setShowGlossary(false)} />
     </div>

@@ -111,7 +111,8 @@ export function SciencePage({ onBack }: { onBack: () => void }) {
       </div>
       <p className="small muted disclaimer">
         Built for the 2026 NASA Space Apps Challenge. NASA does not endorse this project. Data courtesy of NASA (DONKI / CCMC, OSDR, RadLab, Trek) and the Canadian Space
-        Agency.
+        Agency. 🤖 SI disclosure: this game's code, text and illustrations were made with Super Intelligence (AI) assistance and
+        reviewed by our team. The NASA data itself is real, not AI-generated.
       </p>
     </div>
   );

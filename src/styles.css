@@ -2594,3 +2594,13 @@ button:focus-visible, a:focus-visible, .term:focus-visible { outline: 3px solid 
   box-shadow: 0 6px 24px rgba(56, 189, 248, 0.65);
 }
 
+
+/* SI (AI-assistance) disclosure footer */
+.si-footer {
+  margin: 28px auto 8px;
+  max-width: 760px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  opacity: 0.85;
+}
