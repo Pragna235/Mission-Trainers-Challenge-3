@@ -213,8 +213,8 @@ export function PlayScreen({ game, setGame, onEnd, onQuit }: { game: GameState; 
         <button className="btn btn-ghost small-btn jargon-btn" onClick={() => setShowJargonModal(true)} title="Space Words & NASA Jargon Decoder">
           📖 Jargon Decoder
         </button>
-        <button className="btn btn-ghost small-btn nasa-data-btn" onClick={() => setShowTraceModal(true)} title="NASA Datasets & DONKI API">
-          🛰️ NASA Data Hub
+        <button className="btn btn-ghost small-btn nasa-data-btn" onClick={() => setShowTraceModal(true)} title="Kid-Friendly Space Glossary">
+          📖 Space Glossary
         </button>
       </header>
 

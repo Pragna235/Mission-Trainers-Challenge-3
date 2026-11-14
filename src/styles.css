@@ -293,9 +293,20 @@ button:focus-visible, a:focus-visible, .term:focus-visible { outline: 3px solid 
 
 .schematic-svg {
   width: 100%;
-  height: auto;
-  max-height: 180px;
+  height: 280px;
   display: block;
+}
+
+@media (min-width: 1200px) {
+  .schematic-svg {
+    height: 320px;
+  }
+}
+
+@media (max-width: 800px) {
+  .schematic-svg {
+    height: 220px;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1466,7 +1477,7 @@ button:focus-visible, a:focus-visible, .term:focus-visible { outline: 3px solid 
 /* Bigger Interactive Outpost Schematic                                       */
 /* -------------------------------------------------------------------------- */
 .schematic-hero-large {
-  max-height: 280px !important;
+  width: 100%;
 }
 
 .schematic-hud-right {
